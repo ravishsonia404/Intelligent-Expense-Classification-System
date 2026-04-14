@@ -2,19 +2,23 @@ from flask import Flask, request, jsonify
 from tensorflow.keras.models import load_model
 import numpy as np
 import os
+import pickle
 
 app = Flask(__name__)
 
 # Load model safely
-MODEL_PATH = os.path.join("model", "expense_model.keras")
 
-try:
-    model = load_model(MODEL_PATH)
-    print("✅ Model loaded successfully")
-except Exception as e:
-    print("❌ Error loading model:", e)
-    model = None
+model = pickle.load(open("model.pkl", "rb"))
+vectorizer = pickle.load(open("vectorizer.pkl", "rb"))
+le = pickle.load(open("label_encoder.pkl", "rb"))
 
+
+def predict(text, amount):
+    text_vec = vectorizer.transform([text]).toarray()
+    final_input = np.hstack((text_vec, [[amount]]))
+
+    pred = model.predict(final_input)
+    return le.inverse_transform(pred)[0]
 # Categories (must match training)
 categories = ["food", "travel", "shopping"]
 
