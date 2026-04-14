@@ -1,8 +1,9 @@
 import numpy as np
 import pandas as pd
 import pickle
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, Embedding, LSTM
+from tensorflow.keras.models import Sequential, load_model
+from tensorflow.keras.layers import Dense
+from tensorflow.keras.layers import  Embedding, LSTM
 from tensorflow.keras.preprocessing.text import Tokenizer
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 
@@ -22,7 +23,11 @@ label_map = {l:i for i,l in enumerate(labels)}
 y = np.array([label_map[l] for l in df["label"]])
 
 # Model
-model = Sequential()
+model = Sequential([
+    Dense(64, input_shape=(X.shape[1],), activation='relu'),
+    Dense(32, activation='relu'),
+    Dense(y.shape[1], activation='softmax')
+])
 model.add(Embedding(input_dim=1000, output_dim=64, input_length=5))
 model.add(LSTM(64))
 model.add(Dense(len(labels), activation='softmax'))
