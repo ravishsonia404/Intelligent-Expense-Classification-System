@@ -1,51 +1,61 @@
-import numpy as np
 import pandas as pd
-import pickle
-from tensorflow.keras.models import Sequential, load_model
+from sklearn.preprocessing import LabelEncoder
+from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense
-from tensorflow.keras.layers import  Embedding, LSTM
-from tensorflow.keras.preprocessing.text import Tokenizer
-from tensorflow.keras.preprocessing.sequence import pad_sequences
+import os
 
-# Load data
-df = pd.read_csv("../data/data.csv", encoding="latin-1")
+print("🚀 Script started")
 
-# Tokenization
-tokenizer = Tokenizer(num_words=2000,oov_token="<OOV>")
-tokenizer.fit_on_texts(df["text"])
+# Load dataset
+df = pd.read_csv("data/data.csv", encoding="latin1")
+print("✅ CSV Loaded")
 
-X = tokenizer.texts_to_sequences(df["text"])
-X = pad_sequences(X, maxlen=10)
+# Clean column names
+df.columns = df.columns.str.strip()
+print("Columns:", df.columns)
 
-# Labels
-labels = list(df["label"].unique())
-label_map = {l:i for i,l in enumerate(labels)}
-y = np.array([label_map[l] for l in df["label"]])
+# Check column
+if "category" not in df.columns:
+    print("❌ ERROR: 'category' column missing")
+    exit()
+
+# Encode category
+# Encode category
+le = LabelEncoder()
+df["category"] = le.fit_transform(df["category"])
+
+# 🔥 Convert text
+if "text" in df.columns:
+    df["text"] = df["text"].astype("category").cat.codes
+    print("✅ Text encoded")
+
+# Features & labels
+X = df.drop("category", axis=1)
+y = df["category"]
+
+# Features
+X = df.drop("category", axis=1)
+y = df["category"]
+
+print("X shape:", X.shape)
 
 # Model
 model = Sequential([
-    Dense(64, input_shape=(X.shape[1],), activation='relu'),
+    Dense(64, activation='relu', input_shape=(X.shape[1],)),
     Dense(32, activation='relu'),
-    Dense(y.shape[1], activation='softmax')
+    Dense(len(set(y)), activation='softmax')
 ])
-model.add(Embedding(input_dim=1000, output_dim=64, input_length=5))
-model.add(LSTM(64))
-model.add(Dense(len(labels), activation='softmax'))
 
-model.compile(loss='sparse_categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+
+print("🔥 Starting training...")
 
 # Train
-model.fit(X, y, epochs=50)
+model.fit(X, y, epochs=5)
 
-# Save model
-model.save("model/expense_model.keras")
+print("💾 Saving model...")
+model.save("expense_model.keras")
 
-# Save tokenizer
-with open("tokenizer.pkl", "wb") as f:
-    pickle.dump(tokenizer, f)
+print("📂 Files now:", os.listdir())
 
-# Save label map
-with open("labels.pkl", "wb") as f:
-    pickle.dump(labels, f)
-
-print("Model trained and saved!")
+print("✅ DONE")
