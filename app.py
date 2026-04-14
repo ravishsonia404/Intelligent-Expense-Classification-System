@@ -19,7 +19,7 @@ app.secret_key = "secret123"
 uploaded_df = None
 
 # ✅ Load model & tokenizer
-model = load_model("model/expense_model.h5")
+model = load_model("model/expense_model.keras")
 
 with open("model/tokenizer.pkl", "rb") as f:
     tokenizer = pickle.load(f)
