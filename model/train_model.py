@@ -33,7 +33,7 @@ model.compile(loss='sparse_categorical_crossentropy', optimizer='adam', metrics=
 model.fit(X, y, epochs=50)
 
 # Save model
-model.save("expense_model.h5")
+model.save("model/expense_model.keras")
 
 # Save tokenizer
 with open("tokenizer.pkl", "wb") as f:
