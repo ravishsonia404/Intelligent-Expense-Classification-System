@@ -1,61 +1,54 @@
 import pandas as pd
-from sklearn.preprocessing import LabelEncoder
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense
-import os
+import pickle
+import numpy as np
 
-print("🚀 Script started")
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder, StandardScaler
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.linear_model import LogisticRegression
+
+print("🚀 Training started...")
 
 # Load dataset
 df = pd.read_csv("data/data.csv", encoding="latin1")
-print("✅ CSV Loaded")
 
-# Clean column names
+# Clean columns
 df.columns = df.columns.str.strip()
-print("Columns:", df.columns)
 
-# Check column
-if "category" not in df.columns:
-    print("❌ ERROR: 'category' column missing")
-    exit()
+# Check required columns
+required_cols = ["text", "amount", "category"]
+for col in required_cols:
+    if col not in df.columns:
+        raise ValueError(f"Missing column: {col}")
 
-# Encode category
 # Encode category
 le = LabelEncoder()
 df["category"] = le.fit_transform(df["category"])
 
-# 🔥 Convert text
-if "text" in df.columns:
-    df["text"] = df["text"].astype("category").cat.codes
-    print("✅ Text encoded")
+# Text vectorization
+vectorizer = TfidfVectorizer()
+text_features = vectorizer.fit_transform(df["text"]).toarray()
 
-# Features & labels
-X = df.drop("category", axis=1)
+# Combine features (text + amount)
+X = np.hstack((text_features, df[["amount"]].values))
 y = df["category"]
 
-# Features
-X = df.drop("category", axis=1)
-y = df["category"]
+# Scale features
+scaler = StandardScaler()
+X = scaler.fit_transform(X)
 
-print("X shape:", X.shape)
+# Train model
+model = LogisticRegression(max_iter=1000)
+model.fit(X, y)
 
-# Model
-model = Sequential([
-    Dense(64, activation='relu', input_shape=(X.shape[1],)),
-    Dense(32, activation='relu'),
-    Dense(len(set(y)), activation='softmax')
-])
+# Accuracy
+accuracy = model.score(X, y)
+print(f"✅ Accuracy: {accuracy:.2f}")
 
-model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+# Save everything
+pickle.dump(model, open("model/model.pkl", "wb"))
+pickle.dump(vectorizer, open("model/vectorizer.pkl", "wb"))
+pickle.dump(le, open("model/label_encoder.pkl", "wb"))
+pickle.dump(scaler, open("model/scaler.pkl", "wb"))
 
-print("🔥 Starting training...")
-
-# Train
-model.fit(X, y, epochs=5)
-
-print("💾 Saving model...")
-model.save("expense_model.keras")
-
-print("📂 Files now:", os.listdir())
-
-print("✅ DONE")
+print("💾 Model & files saved successfully!")
